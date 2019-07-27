@@ -18,6 +18,8 @@ import (
 var (
 	defaultAddr = "0.0.0.0:8080"
 	privateAddr = "127.0.0.1:8081"
+
+	readTimeout, writeTimeout = 0, 0
 )
 
 // Server provides the sub-command to start the server.
@@ -131,6 +133,20 @@ func serverFlags(cfg *config.Config) []cli.Flag {
 			EnvVars:     []string{"TERRASTATE_ENCRYPTION_SECRET"},
 			Destination: &cfg.General.Secret,
 		},
+		&cli.IntFlag{
+			Name:        "read-timeout",
+			Value:       0,
+			Usage:       "server read timeout in second",
+			EnvVars:     []string{"TERRASTATE_READ_TIMEOUT"},
+			Destination: &readTimeout,
+		},
+		&cli.IntFlag{
+			Name:        "write-timeout",
+			Value:       0,
+			Usage:       "server write timeout in second",
+			EnvVars:     []string{"TERRASTATE_WRITE_TIMEOUT"},
+			Destination: &writeTimeout,
+		},
 	}
 }
 
@@ -176,8 +192,8 @@ func serverAction(cfg *config.Config) cli.ActionFunc {
 				server := &http.Server{
 					Addr:         cfg.Server.Public,
 					Handler:      router.Load(cfg),
-					ReadTimeout:  5 * time.Second,
-					WriteTimeout: 10 * time.Second,
+					ReadTimeout:  time.Duration(readTimeout) * time.Second,
+					WriteTimeout: time.Duration(writeTimeout) * time.Second,
 					TLSConfig: &tls.Config{
 						PreferServerCipherSuites: true,
 						MinVersion:               tls.VersionTLS12,
@@ -218,8 +234,8 @@ func serverAction(cfg *config.Config) cli.ActionFunc {
 			server := &http.Server{
 				Addr:         cfg.Server.Public,
 				Handler:      router.Load(cfg),
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 10 * time.Second,
+				ReadTimeout:  time.Duration(readTimeout) * time.Second,
+				WriteTimeout: time.Duration(writeTimeout) * time.Second,
 			}
 
 			gr.Add(func() error {
@@ -250,8 +266,8 @@ func serverAction(cfg *config.Config) cli.ActionFunc {
 			server := &http.Server{
 				Addr:         cfg.Server.Private,
 				Handler:      router.Status(cfg),
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 10 * time.Second,
+				ReadTimeout:  time.Duration(readTimeout) * time.Second,
+				WriteTimeout: time.Duration(writeTimeout) * time.Second,
 			}
 
 			gr.Add(func() error {
